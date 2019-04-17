@@ -15,3 +15,5 @@ You need to craete 'test' database into mysql and import customer.sql table into
 <p>Open command line and cd to your above nodejs project folder</p>
 <p>run 'npm install'</p>
 <p>run 'node index.js'</p>
+
+curl -X POST https://open.youzan.com/oauth/token -H 'content-type: application/x-www-form-urlencoded' -d 'client_id=testclient&client_secret=testclientsecret&grant_type=silent&kdt_id=88888'
