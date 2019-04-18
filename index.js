@@ -27,7 +27,7 @@ app.use(bodyParser.urlencoded({ // to support URL-encoded bodies
 //end body-parser configuration
 
 //create app server
-var server = app.listen(8081, "127.0.0.1", function() {
+var server = app.listen(18081, "127.0.0.1", function() {
 
   var host = server.address().address
   var port = server.address().port
@@ -110,8 +110,6 @@ app.get('/PO/byCode/:code', function(req, res) {
   }).end();
 });
 
-
 app.get('/token/refresh',function(req,res){
   require("./token").refreshToken(req,res);
 });
-
