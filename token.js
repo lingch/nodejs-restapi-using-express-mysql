@@ -2,10 +2,20 @@ var config = require('config');
 var bodyPaeser = require('body-parser');
 var https = require('https');
 
-var mysql = require('mysql');
+var database = require('./database');
 
+function getToken(callback) {
+	database.select("select `key`,`value` from config where `key`=?", ['token'], function(result) {
+		console.log(result);
+		callback(result[0].value);
+	});
+}
 
-function refreshToken(req, res) {
+function saveToken(token) {
+	database.update("update `config` set `value`=? where `key`=?", [token, 'token']);
+}
+
+function refreshToken(callback) {
 	var tokenConfig = config.get('token');
 	var queryParamConfig = tokenConfig.queryParam;
 
@@ -37,11 +47,11 @@ function refreshToken(req, res) {
 				.on('end', function() {
 					console.log("end");
 					var resultObject = JSON.parse(body);
-					console.log(resultObject.access_token);
-					res.status(200).send("ok");
+					saveToken(resultObject.access_token);
+					callback();
 				});
 		} else {
-			res.status(500).send("error");
+			throw "not 200";
 		}
 	}).on("error", (err) => {
 		console.log("Error: " + err.message);
@@ -51,4 +61,7 @@ function refreshToken(req, res) {
 }
 
 
+
 exports.refreshToken = refreshToken;
+exports.getToken = getToken;
+

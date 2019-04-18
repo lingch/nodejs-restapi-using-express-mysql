@@ -1,10 +1,10 @@
 {
   "database": {
-  "host": "localhost", //mysql database host name
-  "user": "root", //mysql database user name
-  "password": "root", //mysql database password
-  "database": "" //mysql database name
-}
+    "host": "gateway", //mysql database host name
+    "user": "myshop", //mysql database user name
+    "password": "123456", //mysql database password
+    "database": "myshop" //mysql database name
+  },
   "token": {
     "host": "open.youzan.com",
     "port": 443,

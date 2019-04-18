@@ -103,13 +103,30 @@ app.get('/PO/byCode/:code', function(req, res) {
 
   res.json({
     "code": req.params.code,
-    "items": [
-    { "sn": "1234567-1", "channel": 12, "count": 1},
-    { "sn": "8838833-2", "channel": 31, "count": 2}
-    ]
+    "items": [{
+      "sn": "1234567-1",
+      "channel": 12,
+      "count": 1
+    }, {
+      "sn": "8838833-2",
+      "channel": 31,
+      "count": 2
+    }]
   }).end();
 });
 
-app.get('/token/refresh',function(req,res){
-  require("./token").refreshToken(req,res);
+app.get('/token/refresh', function(req, res) {
+  require("./token").refreshToken(function() {
+    res.status(200).send({
+      "status": "ok"
+    });
+  })
+});
+
+app.get('/token/0', function(req, res) {
+  require("./token").getToken(function(token) {
+    res.status(200).send({
+      "token": token
+    });
+  })
 });
