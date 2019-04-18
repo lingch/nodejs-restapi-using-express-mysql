@@ -1,0 +1,18 @@
+{
+  "database": {
+  "host": "localhost", //mysql database host name
+  "user": "root", //mysql database user name
+  "password": "root", //mysql database password
+  "database": "" //mysql database name
+}
+  "token": {
+    "host": "open.youzan.com",
+    "port": 443,
+    "path": "/oauth/token",
+    "queryParam": {
+      "client_id": "a1a479f0eec8fc0928",
+      "client_secret": "7b517a3013215014d4a16799a96801c5",
+      "kdt_id": "42857408"
+    }
+  }
+}

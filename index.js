@@ -4,6 +4,7 @@ var app = express();
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
 
+
 //start mysql connection
 var connection = mysql.createConnection({
   host: 'localhost', //mysql database host name
@@ -108,3 +109,9 @@ app.get('/PO/byCode/:code', function(req, res) {
     ]
   }).end();
 });
+
+
+app.get('/token/refresh',function(req,res){
+  require("./token").refreshToken(req,res);
+});
+
