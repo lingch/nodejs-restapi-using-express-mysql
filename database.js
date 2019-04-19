@@ -21,11 +21,13 @@ function select(cmd,params, callback) {
 	});
 }
 
-function update(cmd, params) {
+function update(cmd, params,callback ){
 	connection.query(cmd, params, function(error, results, fields) {
 		if (error) {
 			console.log(error);
 		}
+
+		callback();
 	});
 }
 

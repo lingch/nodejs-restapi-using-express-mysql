@@ -3,7 +3,7 @@ var express = require('express');
 var app = express();
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
-
+var youzan = require('./youzanClient');
 
 //start mysql connection
 var connection = mysql.createConnection({
@@ -79,27 +79,8 @@ app.delete('/customer', function(req, res) {
 });
 
 app.get('/PO/byCode/:code', function(req, res) {
-  // var YZClient = require('yz-open-sdk-nodejs');
-  // var Token = require('./node_modules/yz-open-sdk-nodejs/Token');
 
-  // var YZClient = new YZClient(new Token('b10295a6ba3335ecbd60d376af540922')); // var YZClient = new YZClient(new Sign('app_id', 'app_secret'));
-
-  // params = {};
-
-  // params['code'] = "78942721479";
-
-
-  // var promise = YZClient.invoke('youzan.trade.selffetchcode.get', '3.0.0', 'GET', params, undefined);
-
-  // promise.then(function(resp) {
-  //   console.log('resp: ' + resp.body);
-  //   var data = JSON.parse(resp.body);
-  //   console.log(data);
-  // }, function(err) {
-  //   console.log('err: ' + err);
-  // }, function(prog) {
-  //   console.log('prog: ' + prog);
-  // });
+  youzan.getOrderByCode(req.param.code);
 
   res.json({
     "code": req.params.code,
@@ -113,6 +94,10 @@ app.get('/PO/byCode/:code', function(req, res) {
       "count": 2
     }]
   }).end();
+});
+
+app.post('/PO/byCode/:code',(req,res)=>{
+  
 });
 
 app.get('/token/refresh', function(req, res) {
