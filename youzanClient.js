@@ -68,6 +68,10 @@ function fetchByCode(rackSN,code,callback) {
 			callback(err);
 			return;
 		}
+		if(codeData.status == 1){
+			callback("already fetched");
+			return;
+		}
 		getOrderByTid(codeData.tid, function(err,tidData){
 			if(err){
 				callback(err);
@@ -98,6 +102,11 @@ function fetchByCode(rackSN,code,callback) {
 						params = {};
 						params['code'] = code;
 						callYZ('youzan.trade.selffetchcode.apply',params,(err,data)=>{
+							if(err){
+								callback(err);
+								return;
+							}
+
 							if(data && data.is_success == true){
 								callback(undefined,fetchCmd);
 							}else{
@@ -127,13 +136,19 @@ function callYZ(api, params,callback) {
 
 		promise.then(function(resp) {
 			//console.log('resp: ' + resp.body);
-			var data = JSON.parse(resp.body).response;
-			if(data){
-				callback(undefined,data);
-			}else{
-				callback("call YZ error");
-			}
+			if(resp.statusCode == 200){
+				var body = JSON.parse(resp.body);
 
+				if(body.response){
+					callback(undefined,body.response);
+				}else if(body.error_response){
+					callback(body.error_response);
+				}else{
+					callback("call YZ failed, unrecognized response");
+				}
+			}else{
+				callback("call YZ failed, code:" + resp.statusCode + ", msg:" + resp.statusMessage);
+			}
 		}, function(err) {
 			console.log('err: ' + err);
 			callback(err)
