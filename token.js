@@ -5,7 +5,8 @@ var https = require('https');
 var database = require('./database');
 
 function getToken(callback) {
-	database.select("select `key`,`value` from config where `key`=?", ['token'], function(result) {
+	database.selectAsync("select `key`,`value` from config where `key`=?", ['token'])
+	.then((result) =>{
 		console.log(result);
 		callback(result[0].value);
 	});

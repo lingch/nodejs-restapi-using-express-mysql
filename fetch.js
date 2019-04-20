@@ -7,20 +7,28 @@ function getFetchedOrder(tid,callback) {
 }
 
 function getRackIDfromRackSN(rackSN,callback){
-	database.select("select `ID` from `RackInstance` where `SN`=?",[rackSN],function(rackResult){
+	database.selectAsync("select `ID` from `RackInstance` where `SN`=?",[rackSN])
+	.then((rackResult) => {
 		if(rackResult.length == 0){
-			throw "cannot find the rack";
+			callback("cannot find the rack: " + rackSN);
+		}else{
+			callback(undefined,rackResult[0].ID);
 		}
-
-		callback(rackResult[0].ID);
+	},(err)=>{
+		callback(err);
 	});
 }
 
 function findProductChannel(rackSN,productSN,callback){
-	database.select("select * from `RackInstance` where `SN`=? and `productSN`=? and `productCount`>0",[rackSN,productSN],function(result){
-		if(result.length ==0)
-			throw "channel not found";
-		callback(result[0].Channel);
+	database.select("select * from `RackInstance` where `SN`=? and `productSN`=? and `productCount`>0",[rackSN,productSN])
+	.then((result)=>{
+		if(result.length ==0){
+			callback("channel not found, rackSN:" + rackSN + ", productSN:" + productSN);
+		}else{
+			callback(undefined,result[0].Channel);
+		}
+	},(err)=>{
+		callback(err);
 	});
 }
 

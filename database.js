@@ -14,9 +14,9 @@ var connection = mysql.createConnection({
 function select(cmd,params, callback) {
 	connection.query(cmd, params, function(error, results, fields) {
 		if (error) {
-			console.log(error);
+			callback(error);
 		}else{
-			callback(results);
+			callback(undefined,results);
 		}
 	});
 }
@@ -24,10 +24,10 @@ function select(cmd,params, callback) {
 function update(cmd, params,callback ){
 	connection.query(cmd, params, function(error, results, fields) {
 		if (error) {
-			console.log(error);
+			callback(error);
+		}else{
+			callback(undefined);
 		}
-
-		callback();
 	});
 }
 

@@ -4,6 +4,9 @@ var app = express();
 var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var youzan = require('./youzanClient');
+var bluebird = require('bluebird');
+
+bluebird.promisifyAll(require("./database"));
 
 //start mysql connection
 var connection = mysql.createConnection({
