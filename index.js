@@ -27,7 +27,7 @@ app.use(bodyParser.urlencoded({ // to support URL-encoded bodies
 //end body-parser configuration
 
 //create app server
-var server = app.listen(18081, "127.0.0.1", function() {
+var server = app.listen(18081, "0.0.0.0", function() {
 
   var host = server.address().address
   var port = server.address().port
@@ -96,8 +96,16 @@ app.get('/PO/byCode/:code', function(req, res) {
   }).end();
 });
 
-app.post('/PO/byCode/:code',(req,res)=>{
-  
+app.get('/fetch/byCode/:code',(req,res)=>{
+  require('./youzanClient').fetchByCode(
+    req.headers['x-clientdn'],
+    req.params.code,(err,fetchCmd)=>{
+      if(err){
+        res.status(500).send(err);
+      }else{
+        res.status(200).send(fetchCmd);
+      }
+  })
 });
 
 app.get('/token/refresh', function(req, res) {

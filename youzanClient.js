@@ -9,15 +9,15 @@ var findProductChannelAsync = bluebird.promisify(fetch.findProductChannel);
 function getOrderByTid(tid,callback) {
 	params = {};
 	params['tid'] = tid;
-	callYZ('youzan.trade.get',params, function(data){
-		callback(data);
+	callYZ('youzan.trade.get',params, function(err,data){
+		callback(err,data);
 	});
 }
 
 function checkOrderInFetchRecord(order,records){
 	var exists = false;
 	for(i=0; i< records.length; ++i){
-		if(order.outer_item_id == record.productSN){
+		if(order.outer_item_id == records[i].productSN){
 			//find fetch record
 			return true;
 		}
@@ -27,13 +27,13 @@ function checkOrderInFetchRecord(order,records){
 	return false;
 }
 
-function pushCmdItem(fetchCmd, sn,channel,count){
-	var cmd = {};
-	cmd.sn = unfetchedOrder.outer_item_id;
-	cmd.channel = 1;
-	cmd.count = 1;
+function buildCmdItem(sn,channel,count){
+	var item = {};
+	item.sn = sn;
+	item.channel = channel;
+	item.count = count;
 
-	fetchCmd.items.push(cmd);
+	return item
 }
 
 function calUnfetchedRecords(orders,dbResult){
@@ -47,42 +47,61 @@ function calUnfetchedRecords(orders,dbResult){
 	return retOrders;
 }
 
-function fetchOrder(rackSN, unfetchedOrder,fetchCmd,callback){
-	findProductChannel(rackSN,unfetchedOrder.outer_item_id, channel=>{
-		pushCmdItem(fetchCmd,
-			unfetchedOrder.outer_item_id,
+function fetchOrder(code,tid,rackSN, unfetchedOrder,callback){
+	fetch.findProductChannel(rackSN,unfetchedOrder.outer_item_id, (channel)=>{
+		item = buildCmdItem(unfetchedOrder.outer_item_id,
 			channel,
 			unfetchedOrder.num);
-		fetch.saveFetchedOrder(rackSN,code,codeData.tid,unfetchedOrder,()=>{
-			callback(fetchCmd);
+		fetch.saveFetchedOrder(code,tid,rackSN,unfetchedOrder,()=>{
+			callback(undefined,item);
 		})
 	});
 }
 
 var fetchOrderAsync = bluebird.promisify(fetchOrder);
 
-function getOrderByCode(rackSN,code,callback) {
+function fetchByCode(rackSN,code,callback) {
 	params = {};
 	params['code'] = code;
-	callYZ('youzan.trade.selffetchcode.get', params,function(codeData){
-		getOrderByTid(codeData.tid, function(tidData){
+	callYZ('youzan.trade.selffetchcode.get', params,function(err,codeData){
+		if(err){
+			callback(err);
+			return;
+		}
+		getOrderByTid(codeData.tid, function(err,tidData){
+			if(err){
+				callback(err);
+				return;
+			}
 			fetch.getFetchedOrder(codeData.tid,function(dbResult){
-				var unfetchedOrders = calUnfetchedRecords(tidData.trade.orders,dbResult);
-
+				var unfetchedOrders = {};
+				if(dbResult == undefined){
+					unfetchedOrders = orders;
+				}else{
+					unfetchedOrders = calUnfetchedRecords(tidData.trade.orders,dbResult);
+				}
 				
 				fetchCmd = {
 					"code": code,
 					"items": []
 				}
 
-				var fetches = [];
-				unfetchedOrders.forEach((unfetchedOrder)=>{
-					fetches.push(fetchOrderAsync(rackSN,unfetchedOrder,fetchCmd));
-				});
-
-				bluebird.all(fetches).then(()=>{
-					callback();
-				});
+				if(unfetchedOrders.length > 0){
+					var fetches = [];
+					unfetchedOrders.forEach((unfetchedOrder)=>{
+						fetches.push(fetchOrderAsync(code, codeData.tid, rackSN,unfetchedOrder));
+					});
+	
+					bluebird.all(fetches)
+					.then((items)=>{
+						fetchCmd.items=items;
+						callback(undefined,fetchCmd);
+					},(error)=>{
+						console.log(error);
+					});
+				}else{
+					callback(undefined,fetchCmd);
+				}
 			})
 		});
 	});
@@ -100,21 +119,25 @@ function callYZ(api, params,callback) {
 		promise.then(function(resp) {
 			//console.log('resp: ' + resp.body);
 			var data = JSON.parse(resp.body).response;
-			console.log(data);
-
-			callback(data);
+			if(data){
+				callback(undefined,data);
+			}else{
+				callback("call YZ error");
+			}
 
 		}, function(err) {
 			console.log('err: ' + err);
+			callback(err)
 		}, function(prog) {
 			console.log('prog: ' + prog);
+			callback(prog);
 		});
 	});
 
 }
 
-getOrderByCode("androidtest","80392436389",function (data){
-	console.log(data);
-});
+// fetchByCode("/C=cn/ST=gd/O=zg/CN=androidtest","80392436389",function (fetchCmd){
+// 	console.log(data);
+// });
 
-exports.getOrderByCode = getOrderByCode;
+exports.fetchByCode = fetchByCode;
