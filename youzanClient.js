@@ -95,7 +95,16 @@ function fetchByCode(rackSN,code,callback) {
 					bluebird.all(fetches)
 					.then((items)=>{
 						fetchCmd.items=items;
-						callback(undefined,fetchCmd);
+						params = {};
+						params['code'] = code;
+						callYZ('youzan.trade.selffetchcode.apply',params,(err,data)=>{
+							if(data && data.is_success == true){
+								callback(undefined,fetchCmd);
+							}else{
+								callback("fetch failed");
+							}
+						})
+						
 					},(error)=>{
 						console.log(error);
 					});
