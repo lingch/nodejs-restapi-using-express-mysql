@@ -4,7 +4,6 @@ var Token = require('./node_modules/yz-open-sdk-nodejs/Token');
 var fetch = require('./fetch');
 
 var bluebird = require('bluebird');
-var findProductChannelAsync = bluebird.promisify(fetch.findProductChannel);
 
 function getOrderByTid(tid,callback) {
 	params = {};
@@ -38,26 +37,24 @@ function buildCmdItem(sn,channel,count){
 
 function calUnfetchedRecords(pos,dbResult){
 	var retPos = [];
-	for(i=0; i< pos.length;++i){
+	for(var i=0; i< pos.length;++i){
 		if(!checkPoInFetchRecord(pos[i],dbResult)){
-			retPos.push(pos[0]);
+			retPos.push(pos[i]);
 		};
 	}
 	return retPos;
 }
 
 function fetchOrder(code,tid,rackSN, unfetchedOrder,callback){
-	fetch.findProductChannel(rackSN,unfetchedOrder.outer_item_id, (channel)=>{
-		item = buildCmdItem(unfetchedOrder.outer_item_id,
+	fetch.findProductChannelAsync(rackSN,unfetchedOrder.productSN).then((channel)=>{
+		item = buildCmdItem(unfetchedOrder.productSN,
 			channel,
-			unfetchedOrder.num);
-		fetch.saveFetchedOrder(code,tid,rackSN,unfetchedOrder,()=>{
+			unfetchedOrder.productCount);
+		return fetch.saveFetchedOrderAsync(code,tid,rackSN,unfetchedOrder).then(()=>{
 			callback(undefined,item);
-		})
+		});
 	});
 }
-
-var fetchOrderAsync = bluebird.promisify(fetchOrder);
 
 function yzTradeDataToPO(code,trade, callback){
 	var pos=[];
@@ -102,8 +99,20 @@ function getPOByCode(code,callback){
 
 	
 }
+// function f1(callback) { f22().catch((err)=>{
+// 	console.log(err);
+// }); }
+// function f2(callback) { f33(); }
+// function f3(callback) {
+//   callback('no way!');
+// }
+// f11 = bluebird.promisify(f1);
+// f22 = bluebird.promisify(f2);
+// f33 = bluebird.promisify(f3);
 
 function fetchByCode(rackSN,code,callback) {
+	//f11();
+
 	params = {};
 	params['code'] = code;
 	
@@ -121,7 +130,7 @@ function fetchByCode(rackSN,code,callback) {
 			if(unfetchedOrders.length > 0){
 				var fetches = [];
 				unfetchedOrders.forEach((unfetchedOrder)=>{
-					fetches.push(fetchOrderAsync(code, codeData.tid, rackSN,unfetchedOrder));
+					fetches.push(this.fetchOrderAsync(unfetchedOrder.code, unfetchedOrder.tid, rackSN,unfetchedOrder));
 				});
 	
 				bluebird.all(fetches)
@@ -131,6 +140,10 @@ function fetchByCode(rackSN,code,callback) {
 					params['code'] = code;
 	
 					callback(null,fetchCmd);
+				},(reason)=>{
+					console.log(reason);
+				}).catch((err)=>{
+					console.log(err);
 				});
 					// callYZ('youzan.trade.selffetchcode.apply',params,(err,data)=>{
 					// 	if(err){
@@ -144,6 +157,8 @@ function fetchByCode(rackSN,code,callback) {
 					// 		callback("fetch failed");
 					// 	}
 					// })
+			}else{
+				callback(null,fetchCmd);
 			}
 		});
 	});	
@@ -191,3 +206,4 @@ exports.getPOByCode = getPOByCode;
 exports.callYZ = callYZ;
 exports.getOrderByTid = getOrderByTid;
 exports.yzTradeDataToPO = yzTradeDataToPO;
+exports.fetchOrder = fetchOrder;

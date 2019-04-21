@@ -18,40 +18,35 @@ function getRackIDfromRackSN(rackSN,callback){
 		}else{
 			callback(undefined,rackResult[0].ID);
 		}
-	},(err)=>{
-		callback(err);
 	});
 }
 
 function findProductChannel(rackSN,productSN,callback){
-	database.select("select * from `RackInstance` where `SN`=? and `productSN`=? and `productCount`>0",[rackSN,productSN])
+	database.selectAsync("select * from `RackInstance` where `SN`=? and `ProductSN`=? and `ProductCount`>0",[rackSN,productSN])
 	.then((result)=>{
 		if(result.length ==0){
 			callback("channel not found, rackSN:" + rackSN + ", productSN:" + productSN);
 		}else{
 			callback(undefined,result[0].Channel);
 		}
-	},(err)=>{
-		callback(err);
 	});
 }
 
 function saveFetchedOrder(code,tid,rackSN,order,callback){
 	var now = moment().format('YYYY-MM-DD HH:mm:ss');
 
-	getRackIDfromRackSN(rackSN,rackID=>{
+	this.getRackIDfromRackSNAsync(rackSN).then(rackID=>{
 
-	database.update(
+	database.updateAsync(
 		"insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
 		values (?,?,?,?,?,?)",
-		[code,tid,order.outer_item_id,order.num,rackID,now],()=>{
-			database.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
-			[order.num,rackID],()=>{
-				callback();
-			})
-		}
-	);
-
+		[code,tid,order.productSN,order.productCount,rackID,now]).then(()=>{
+			return database.updateAsync("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
+			[order.productCount,rackID])
+		}).then(()=>{
+			callback(null);
+		});
+		
 	});
 }
 
@@ -87,3 +82,5 @@ exports.saveFetchedOrder = saveFetchedOrder;
 exports.saveFetchedOrders = saveFetchedOrders;
 exports.getPOByCode = getPOByCode;
 exports.savePO = savePO;
+exports.getRackIDfromRackSN = getRackIDfromRackSN;
+
