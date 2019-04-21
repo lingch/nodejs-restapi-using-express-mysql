@@ -7,6 +7,8 @@ var youzan = require('./youzanClient');
 var bluebird = require('bluebird');
 
 bluebird.promisifyAll(require("./database"));
+bluebird.promisifyAll(require("./fetch"));
+bluebird.promisifyAll(youzan);
 
 //start mysql connection
 var connection = mysql.createConnection({
@@ -100,15 +102,13 @@ app.get('/PO/byCode/:code', function(req, res) {
 });
 
 app.get('/fetch/byCode/:code',(req,res)=>{
-  require('./youzanClient').fetchByCode(
-    req.headers['x-clientdn'],
-    req.params.code,(err,fetchCmd)=>{
-      if(err){
-        res.status(500).send(err);
-      }else{
-        res.status(200).send(fetchCmd);
-      }
-  })
+  youzan.fetchByCodeAsync(req.headers['x-clientdn'],
+    req.params.code)
+    .then((fetchCmd)=>{
+      res.status(200).send(fetchCmd);
+    }).catch((err)=>{
+      res.status(500).send(err);
+  });
 });
 
 app.get('/token/refresh', function(req, res) {
