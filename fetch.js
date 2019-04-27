@@ -2,80 +2,124 @@ var moment = require('moment');
 
 var database = require('./database');
 
-function getFetchedOrder(tid,callback) {
-	database.select("select * from `FetchRecord` where `tid`=?", [tid],callback);
+async function getFetchedOrderByTid(tid) {
+	var fetchedOrders = await database.select("select * from `FetchRecord` where `tid`=?", [tid]);
+	return fetchedOrders;
 }
 
-function getFetchedOrderByCode(code,callback) {
-	database.select("select * from `FetchRecord` where `code`=?", [code],callback);
+async function getFetchedOrderByCode(code) {
+	var fetchedOrders = database.select("select * from `FetchRecord` where `code`=?", [code]);
+	return fetchedOrders;
 }
 
-function getRackIDfromRackSN(rackSN,callback){
-	database.selectAsync("select `ID` from `RackInstance` where `SN`=?",[rackSN])
-	.then((rackResult) => {
-		if(rackResult.length == 0){
-			callback("cannot find the rack: " + rackSN);
-		}else{
-			callback(undefined,rackResult[0].ID);
-		}
-	});
+async function getRackIDfromRackSN(rackSN){
+	var rackResult = await database.select("select `ID` from `RackInstance` where `SN`=?",[rackSN])
+
+	if(rackResult.length == 0){
+		throw new Error("cannot find the rack: " + rackSN);
+	}
+	
+	return rackResult[0].ID;
 }
 
-function findProductChannel(rackSN,productSN,callback){
-	database.selectAsync("select * from `RackInstance` where `SN`=? and `ProductSN`=? and `ProductCount`>0",[rackSN,productSN])
-	.then((result)=>{
-		if(result.length ==0){
-			callback("channel not found, rackSN:" + rackSN + ", productSN:" + productSN);
-		}else{
-			callback(undefined,result[0].Channel);
-		}
-	});
+async function findProductChannel(rackSN,productSN){
+	var result = database.select("select * from `RackInstance` where `SN`=? and `ProductSN`=? and `ProductCount`>0",[rackSN,productSN]);
+
+	if(result.length ==0){
+		throw new Error("channel not found, rackSN:" + rackSN + ", productSN:" + productSN);
+	}
+	
+	return result[0].Channel;
 }
 
-function saveFetchedOrder(code,tid,rackSN,order,callback){
+async function saveFetchedOrder(code,tid,rackSN,order){
 	var now = moment().format('YYYY-MM-DD HH:mm:ss');
 
-	this.getRackIDfromRackSNAsync(rackSN).then(rackID=>{
+	var rackID = await this.getRackIDfromRackSN(rackSN);
 
-	database.updateAsync(
+	await database.update(
 		"insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
 		values (?,?,?,?,?,?)",
-		[code,tid,order.productSN,order.productCount,rackID,now]).then(()=>{
-			return database.updateAsync("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
-			[order.productCount,rackID])
-		}).then(()=>{
-			callback(null);
-		});
-		
-	});
+		[code,tid,order.productSN,order.productCount,rackID,now]);
+
+	await database.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
+			[order.productCount,rackID]);
 }
 
-function savePO(code,tid,productSN,productCount,callback){
+async function savePO(code,tid,productSN,productCount){
 	var now = moment().format('YYYY-MM-DD HH:mm:ss');
 
-	database.updateAsync("insert into `PO`(`code`,`tid`,`productSN`,`productCount`,`updatetime`) \
-		values(?,?,?,?,?)",[code,tid,productSN,productCount,now])
-	.then(()=>{
-		callback(null);
-	});
+	await database.update("insert into `PO`(`code`,`tid`,`productSN`,`productCount`,`updatetime`) \
+		values(?,?,?,?,?)",[code,tid,productSN,productCount,now]);
 }
 
-function getPOByCode(code,callback){
-	database.selectAsync("select * from `PO` where `code`=?",[code])
-	.then((result) =>{
-		callback(null,result);
-	});
+function buildCmdItem(sn,channel,count){
+	var item = {};
+	item.sn = sn;
+	item.channel = channel;
+	item.count = count;
+
+	return item
 }
 
-function saveFetchedOrders(rackSN,code,tid,orders,callback){
-		orders.forEach(
-			(order)=>{
-				saveFetchedOrder(code,tid,rackSN,order,callback)
-			}
-		);
+async function fetchOrder(code,tid,rackSN, unfetchedOrder){
+	var channel = await findProductChannel(rackSN,unfetchedOrder.productSN);
+	var item = buildCmdItem(unfetchedOrder.productSN,
+			channel,
+			unfetchedOrder.productCount);
+	await saveFetchedOrder(code,tid,rackSN,unfetchedOrder);
+	return item;
 }
 
-exports.getFetchedOrder = getFetchedOrder;
+async function fetchByCode(rackSN,code) {
+	params = {};
+	params['code'] = code;
+	
+	var pos = await getPOByCode(code);
+	if(pos.length == 0){
+		throw new Error("PO not found");
+	}
+	
+	var dbResult = await getFetchedOrderByCode(code)
+
+	var unfetchedOrders = 
+		calUnfetchedRecords(pos,dbResult);
+	
+	fetchCmd = {
+		"code": code,
+		"items": []
+	}
+
+	if(unfetchedOrders.length > 0){
+		var fetches = [];
+		unfetchedOrders.forEach((unfetchedOrder)=>{
+			fetches.push(await fetchOrder(unfetchedOrder.code, unfetchedOrder.tid, rackSN,unfetchedOrder));
+		});
+
+		Promise.all(fetches)
+		.then((items)=>{
+			fetchCmd.items=items;
+			return fetchCmd;
+		});
+	}else{
+		return fetchCmd;
+	}
+}
+
+async function getPOByCode(code){
+	var result = await database.select("select * from `PO` where `code`=?",[code]);
+	return result;
+}
+
+async function saveFetchedOrders(rackSN,code,tid,orders){
+	orders.forEach(
+		(order)=>{
+			saveFetchedOrder(code,tid,rackSN,order)
+		}
+	);
+}
+
+exports.getFetchedOrderByTid = getFetchedOrderByTid;
 exports.getFetchedOrderByCode = getFetchedOrderByCode;
 exports.findProductChannel = findProductChannel;
 exports.saveFetchedOrder = saveFetchedOrder;

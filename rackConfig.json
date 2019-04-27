@@ -1,0 +1,25 @@
+{
+    "matches":
+    [
+        {
+            "scanner":  "aaaaaaa",
+            "door":{
+                "gpioIndR": 1,
+                "gpioIndG": 2,
+                "gpioIndY": 3,
+                "gpioLock": 4
+            }
+        },
+        {
+            "scanner":  "bbbbbbbbb",
+            "door":{
+                "gpioIndR": 5,
+                "gpioIndG": 6,
+                "gpioIndY": 7,
+                "gpioLock": 8
+            }
+        }
+    ]
+
+
+}

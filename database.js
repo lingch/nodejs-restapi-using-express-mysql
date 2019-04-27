@@ -11,24 +11,28 @@ var connection = mysql.createConnection({
 	database: dbConfig.database
 });
 
-function select(cmd,params, callback) {
-	connection.query(cmd, params, function(error, results, fields) {
-		if (error) {
-			callback(error);
-		}else{
-			callback(undefined,results);
-		}
+async function select(cmd,params) {
+	return new Promise((resolve,reject) =>{
+		connection.query(cmd, params, function(error, results, fields) {
+			if (error) {
+				reject(error);
+			}else{
+				resolve(results);
+			}
+		});
 	});
 }
 
-function update(cmd, params,callback ){
+async function update(cmd, params,callback ){
+	return new Promise((resolve,reject)=>{
 	connection.query(cmd, params, function(error, results, fields) {
 		if (error) {
-			callback(error);
+			reject(error);
 		}else{
-			callback(undefined);
+			resolve(undefined);
 		}
 	});
+});
 }
 
 exports.select=select;

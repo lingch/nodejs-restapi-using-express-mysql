@@ -20,6 +20,7 @@
     "http": "0.0.0",
     "moment": "^2.24.0",
     "mysql": "^2.13.0",
+    "pi-gpio": "0.0.8",
     "yz-open-sdk-nodejs": "^1.0.2"
   }
 }

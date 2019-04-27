@@ -1,16 +1,21 @@
+const express = require('express')
+const router = express.Router()
+
 var YZClient = require('yz-open-sdk-nodejs');
 var Token = require('./node_modules/yz-open-sdk-nodejs/Token');
 
 var fetch = require('./fetch');
 
-var bluebird = require('bluebird');
 
-function getOrderByTid(tid,callback) {
-	params = {};
-	params['tid'] = tid;
-	this.callYZAsync('youzan.trade.get',params)
-	.then((data)=>{
-		callback(null,data);
+
+async function getOrderByTid(tid,callback) {
+	return new Promise((resolve,reject) => {
+		params = {};
+		params['tid'] = tid;
+		this.callYZ('youzan.trade.get',params)
+		.then((data)=>{
+			resolve(data);
+		});
 	});
 }
 
@@ -26,14 +31,7 @@ function checkPoInFetchRecord(po,records){
 	return false;
 }
 
-function buildCmdItem(sn,channel,count){
-	var item = {};
-	item.sn = sn;
-	item.channel = channel;
-	item.count = count;
 
-	return item
-}
 
 function calUnfetchedRecords(pos,dbResult){
 	var retPos = [];
@@ -45,18 +43,7 @@ function calUnfetchedRecords(pos,dbResult){
 	return retPos;
 }
 
-function fetchOrder(code,tid,rackSN, unfetchedOrder,callback){
-	fetch.findProductChannelAsync(rackSN,unfetchedOrder.productSN).then((channel)=>{
-		item = buildCmdItem(unfetchedOrder.productSN,
-			channel,
-			unfetchedOrder.productCount);
-		return fetch.saveFetchedOrderAsync(code,tid,rackSN,unfetchedOrder).then(()=>{
-			callback(undefined,item);
-		});
-	});
-}
-
-function yzTradeDataToPO(code,trade, callback){
+function yzTradeDataToPO(code,trade){
 	var pos=[];
 	for(i=0;i<trade.orders.length;++i){
 		var po = {"code": code,
@@ -67,104 +54,29 @@ function yzTradeDataToPO(code,trade, callback){
 		pos.push(po);
 	}
 
-	callback(null,pos);
+	return pos;
 }
 
-function getPOByCode(code,callback){
-	fetch.getPOByCodeAsync(code)
-	.then((pos) =>{
-		if(pos.length>0){
-			//got from database
-			callback(null,pos);
-		}else{
-			//get from yz
-			this.callYZAsync('youzan.trade.selffetchcode.get', params)
-			.then((codeData) => {
-				this.getOrderByTidAsync(codeData.tid).then((tidData) => {
-					this.yzTradeDataToPOAsync(code,tidData.trade)
-					.then((pos)=>{
-						//got, save to database
-						var savePs = [];
-						pos.forEach((po)=>{
-							savePs.push(fetch.savePOAsync(code,codeData.tid,po.productSN,po.productCount));
-						});
-						bluebird.all(savePs).then(()=>{
-							callback(null,pos);
-						});
-					});
-				});
-			});
-		}
-	})
+async function getPOByCode(code){
 
-	
-}
-// function f1(callback) { f22().catch((err)=>{
-// 	console.log(err);
-// }); }
-// function f2(callback) { f33(); }
-// function f3(callback) {
-//   callback('no way!');
-// }
-// f11 = bluebird.promisify(f1);
-// f22 = bluebird.promisify(f2);
-// f33 = bluebird.promisify(f3);
+	//get from yz
+	var codeData = await callYZ('youzan.trade.selffetchcode.get', params);
+	var tidData = await getOrderByTid(codeData.tid);
+	var pos = yzTradeDataToPO(code,tidData.trade)
 
-function fetchByCode(rackSN,code,callback) {
-	//f11();
-
-	params = {};
-	params['code'] = code;
-	
-	this.getPOByCodeAsync(code).then((pos)=>{
-		fetch.getFetchedOrderByCodeAsync(code)
-		.then((dbResult)=>{
-			var unfetchedOrders = 
-				calUnfetchedRecords(pos,dbResult);
-			
-			fetchCmd = {
-				"code": code,
-				"items": []
-			}
-	
-			if(unfetchedOrders.length > 0){
-				var fetches = [];
-				unfetchedOrders.forEach((unfetchedOrder)=>{
-					fetches.push(this.fetchOrderAsync(unfetchedOrder.code, unfetchedOrder.tid, rackSN,unfetchedOrder));
-				});
-	
-				bluebird.all(fetches)
-				.then((items)=>{
-					fetchCmd.items=items;
-					params = {};
-					params['code'] = code;
-	
-					callback(null,fetchCmd);
-				},(reason)=>{
-					console.log(reason);
-				}).catch((err)=>{
-					console.log(err);
-				});
-					// callYZ('youzan.trade.selffetchcode.apply',params,(err,data)=>{
-					// 	if(err){
-					// 		callback(err);
-					// 		return;
-					// 	}
-	
-					// 	if(data && data.is_success == true){
-					// 		callback(undefined,fetchCmd);
-					// 	}else{
-					// 		callback("fetch failed");
-					// 	}
-					// })
-			}else{
-				callback(null,fetchCmd);
-			}
-		});
-	});	
+	//got, save to database
+	var savePs = [];
+	pos.forEach((po)=>{
+		savePs.push(fetch.savePO(code,codeData.tid,po.productSN,po.productCount));
+	});
+	bluebird.all(savePs).then(()=>{
+		callback(null,pos);
+	});
 }
 
-function callYZ(api, params,callback) {
+
+
+async function callYZ(api, params,callback) {
 
 	require("./token").getToken(function(mytoken) {
 
@@ -207,3 +119,4 @@ exports.callYZ = callYZ;
 exports.getOrderByTid = getOrderByTid;
 exports.yzTradeDataToPO = yzTradeDataToPO;
 exports.fetchOrder = fetchOrder;
+exports.router = router;
