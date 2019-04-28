@@ -1,4 +1,5 @@
 {
+  "queueHost": "www.mywxstore.cn",
   "database": {
     "host": "gateway", //mysql database host name
     "user": "myshop", //mysql database user name

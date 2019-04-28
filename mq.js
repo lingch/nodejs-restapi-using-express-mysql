@@ -1,8 +1,9 @@
 var amqp = require('amqplib/callback_api');
+var config = require('config');
 
-var host = 'mywxstore.cn';
+var host = config.get('queueHost');
 
-async function connectToMq(ex, type, durable) {
+async function connectToEx(ex, type, durable) {
     return new Promise((resolve, reject) => {
         amqp.connect("amqp://" + host + "/myshop", function (err, conn) {
             if (err) {
@@ -21,43 +22,51 @@ async function connectToMq(ex, type, durable) {
     });
 }
 
-async function bindQueue(channel, qName,exclusive,callback,ack){
-    return new Promise((resolve,reject) => {
-        channel.assertQueue(qName, {exclusive: exclusive}, function(err, q) {
-            if(err){
+async function connectToQueue(ex,qName,callback,ack){
+    return new Promise((resolve, reject) => {
+        amqp.connect("amqp://" + host + "/myshop", function (err, conn) {
+            if (err) {
                 reject(err);
-            }else{
-                channel.bindQueue(q.queue, ex, '');
-      
-                channel.consume(q.queue, callback, {noAck: !ack});
-                resolve(q);
+            } else {
+                conn.createChannel(function (err, channel) {
+                    if (err) {
+                        reject(err);
+                    } else {
+                        channel.assertQueue(qName, {exclusive: true}, function(err, q) {
+                            if(err){
+                                reject(err);
+                            }else{
+                                channel.bindQueue(q.queue, ex, '');
+                      
+                                channel.consume(q.queue, callback, {noAck: !ack});
+                                resolve([conn,channel,q]);
+                            }
+                        });
+                    }
+                });
             }
+        });
     });
-});
 }
-class FanOutQueue {
-    async constructor(ex, durable,qName) {
+
+class PublishQueue {
+
+    async init(ex, durable){
         this.ex = ex;
-        [this.conn, this.channel] = await connectToMq(ex, 'fanout', durable);
-
-        
-            
-
+        [this.conn, this.channel] = await connectToEx(ex, 'fanout', durable);
     }
 
     sendMsg(msg) {
-        this.ch.publish(this.ex, '', new Buffer(msg));
+        this.channel.publish(this.ex, '', new Buffer(msg));
     }
 }
 
-class QueueRecv{
-    async constructor(ex, durable,msgCallback){
+class RecvQueue{
+    async init(ex, qName,msgCallback){
         this.ex = ex;
-        [this.conn, this.channel] = await connectToMq(ex, 'fanout', durable);
-
-        await bindQueue(this.channel,qName,true,msgCallback,true);
+        [this.conn, this.channel, this.q] = await connectToQueue(ex, qName, msgCallback, true);
     }
 }
 
-exports.FanOutQueue = FanOutQueue;
-exports.QueueRecv = QueueRecv;
+exports.PublishQueue = PublishQueue;
+exports.RecvQueue = RecvQueue;

@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const request = require('request');
+var MQ = require('./mq');
 
 var upstream = 'https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY'
 async function callUpstream(){
@@ -18,10 +19,10 @@ async function callUpstream(){
     });
 }
 
-var MQ = require('./mq');
-
-var poQ = new MQ.QueueRecv('amq.fanout',true,onPO);
-var fetchQ = new MQ.QueueRecv('amq.fanout',true,onFetch);
+var poQ = new MQ.RecvQueue();
+poQ.init('amq.fanout','',onPO);
+var fetchQ = new MQ.RecvQueue();
+fetchQ.init('amq.fanout','',onFetch);
 
 function onPO(msg){
     var PO = { "items" : [] };
