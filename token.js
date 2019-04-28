@@ -1,10 +1,10 @@
 var config = require('config');
-var bodyPaeser = require('body-parser');
 var https = require('https');
 
 var database = require('./database');
+const router = express.Router();
 
-async function getToken(callback) {
+async function getToken() {
 	var result = database.select("select `key`,`value` from config where `key`=?", ['token'])
 
 	console.log(result);
@@ -64,8 +64,21 @@ async function refreshToken() {
 
 
 
-
-
-exports.refreshToken = refreshToken;
-exports.getToken = getToken;
+router.get('/refresh', function(req, res) {
+	refreshToken(function() {
+	  res.status(200).send({
+		"status": "ok"
+	  });
+	})
+  });
+  
+  router.get('/', function(req, res) {
+	getToken(function(token) {
+	  res.status(200).send({
+		"token": token
+	  });
+	})
+  });
+  
+exports.router = router;
 

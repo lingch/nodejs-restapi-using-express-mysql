@@ -2,15 +2,6 @@ var moment = require('moment');
 
 var database = require('./database');
 
-async function getFetchedOrderByTid(tid) {
-	var fetchedOrders = await database.select("select * from `FetchRecord` where `tid`=?", [tid]);
-	return fetchedOrders;
-}
-
-async function getFetchedOrderByCode(code) {
-	var fetchedOrders = database.select("select * from `FetchRecord` where `code`=?", [code]);
-	return fetchedOrders;
-}
 
 async function getRackIDfromRackSN(rackSN){
 	var rackResult = await database.select("select `ID` from `RackInstance` where `SN`=?",[rackSN])
@@ -46,12 +37,7 @@ async function saveFetchedOrder(code,tid,rackSN,order){
 			[order.productCount,rackID]);
 }
 
-async function savePO(code,tid,productSN,productCount){
-	var now = moment().format('YYYY-MM-DD HH:mm:ss');
 
-	await database.update("insert into `PO`(`code`,`tid`,`productSN`,`productCount`,`updatetime`) \
-		values(?,?,?,?,?)",[code,tid,productSN,productCount,now]);
-}
 
 function buildCmdItem(sn,channel,count){
 	var item = {};
@@ -71,14 +57,9 @@ async function fetchOrder(code,tid,rackSN, unfetchedOrder){
 	return item;
 }
 
-async function fetchByCode(rackSN,code) {
+async function fetchByCode(pos,rackSN,code) {
 	params = {};
 	params['code'] = code;
-	
-	var pos = await getPOByCode(code);
-	if(pos.length == 0){
-		throw new Error("PO not found");
-	}
 	
 	var dbResult = await getFetchedOrderByCode(code)
 
@@ -106,11 +87,6 @@ async function fetchByCode(rackSN,code) {
 	}
 }
 
-async function getPOByCode(code){
-	var result = await database.select("select * from `PO` where `code`=?",[code]);
-	return result;
-}
-
 async function saveFetchedOrders(rackSN,code,tid,orders){
 	orders.forEach(
 		(order)=>{
@@ -118,6 +94,30 @@ async function saveFetchedOrders(rackSN,code,tid,orders){
 		}
 	);
 }
+
+
+function checkPoInFetchRecord(po,records){
+	var exists = false;
+	for(i=0; i< records.length; ++i){
+		if(po.productSN == records[i].productSN){
+			return true;
+		}
+	}
+
+	//fetch record not found
+	return false;
+}
+
+function calUnfetchedRecords(pos,dbResult){
+	var retPos = [];
+	for(var i=0; i< pos.length;++i){
+		if(!checkPoInFetchRecord(pos[i],dbResult)){
+			retPos.push(pos[i]);
+		};
+	}
+	return retPos;
+}
+
 
 exports.getFetchedOrderByTid = getFetchedOrderByTid;
 exports.getFetchedOrderByCode = getFetchedOrderByCode;

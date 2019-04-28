@@ -11,7 +11,7 @@ var connection = mysql.createConnection({
 	database: dbConfig.database
 });
 
-async function select(cmd,params) {
+exports.select=async function (cmd,params) {
 	return new Promise((resolve,reject) =>{
 		connection.query(cmd, params, function(error, results, fields) {
 			if (error) {
@@ -23,7 +23,7 @@ async function select(cmd,params) {
 	});
 }
 
-async function update(cmd, params,callback ){
+exports.update=async function (cmd, params ){
 	return new Promise((resolve,reject)=>{
 	connection.query(cmd, params, function(error, results, fields) {
 		if (error) {
@@ -35,6 +35,22 @@ async function update(cmd, params,callback ){
 });
 }
 
-exports.select=select;
-exports.update=update;
+exports.getFetchedOrderByTid = async function (tid) {
+	var fetchedOrders = await database.select("select * from `FetchRecord` where `tid`=?", [tid]);
+	return fetchedOrders;
+}
+
+
+exports.savePO = async function (code,tid,productSN,productCount){
+	var now = moment().format('YYYY-MM-DD HH:mm:ss');
+
+	await database.update("insert into `PO`(`code`,`tid`,`productSN`,`productCount`,`updatetime`) \
+		values(?,?,?,?,?)",[code,tid,productSN,productCount,now]);
+}
+
+exports.getFetchedOrderByCode = async function (code) {
+	var fetchedOrders = database.select("select * from `FetchRecord` where `code`=?", [code]);
+	return fetchedOrders;
+}
+
 

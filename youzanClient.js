@@ -4,43 +4,50 @@ const router = express.Router()
 var YZClient = require('yz-open-sdk-nodejs');
 var Token = require('./node_modules/yz-open-sdk-nodejs/Token');
 
-var fetch = require('./fetch');
+var FanoutQueue = require('./mq').FanOutQueue;
 
+var poPublishQueue = await new FanoutQueue('mywxstore.cn','amq.fanout',true);
 
+async function yzInvoke(api, params) {
 
-async function getOrderByTid(tid,callback) {
-	return new Promise((resolve,reject) => {
-		params = {};
-		params['tid'] = tid;
-		this.callYZ('youzan.trade.get',params)
-		.then((data)=>{
-			resolve(data);
+	return new Promise((resolve,reject) =>{
+		var token = await require("./token").getToken(); 
+
+		var myClient = new YZClient(new Token(mytoken));
+	
+		var promise = myClient.invoke(api, '3.0.0', 'GET', params, undefined);
+	
+		promise.then(function(resp) {
+			//console.log('resp: ' + resp.body);
+			if(resp.statusCode == 200){
+				var body = JSON.parse(resp.body);
+	
+				if(body.response){
+					resolve(body.response);
+				}else if(body.error_response){
+					reject(body.error_response);
+				}else{
+					reject("call YZ failed, unrecognized response");
+				}
+			}else{
+				reject("call YZ failed, code:" + resp.statusCode + ", msg:" + resp.statusMessage);
+			}
+		}, function(err) {
+			console.log('err: ' + err);
+			reject(err)
+		}, function(prog) {
+			console.log('prog: ' + prog);
+			reject(prog);
 		});
 	});
 }
 
-function checkPoInFetchRecord(po,records){
-	var exists = false;
-	for(i=0; i< records.length; ++i){
-		if(po.productSN == records[i].productSN){
-			return true;
-		}
-	}
-
-	//fetch record not found
-	return false;
-}
-
-
-
-function calUnfetchedRecords(pos,dbResult){
-	var retPos = [];
-	for(var i=0; i< pos.length;++i){
-		if(!checkPoInFetchRecord(pos[i],dbResult)){
-			retPos.push(pos[i]);
-		};
-	}
-	return retPos;
+async function yzGetPOByTid(tid) {
+	params = {};
+	params['tid'] = tid;
+	var tidData = await yzInvoke('youzan.trade.get',params);
+	var pos = yzTradeDataToPO(code,tidData.trade);
+	return pos;
 }
 
 function yzTradeDataToPO(code,trade){
@@ -57,66 +64,38 @@ function yzTradeDataToPO(code,trade){
 	return pos;
 }
 
-async function getPOByCode(code){
+async function yzGetPOByCode(code){
 
-	//get from yz
-	var codeData = await callYZ('youzan.trade.selffetchcode.get', params);
-	var tidData = await getOrderByTid(codeData.tid);
-	var pos = yzTradeDataToPO(code,tidData.trade)
+	var codeData = await yzInvoke('youzan.trade.selffetchcode.get', params);
 
-	//got, save to database
-	var savePs = [];
-	pos.forEach((po)=>{
-		savePs.push(fetch.savePO(code,codeData.tid,po.productSN,po.productCount));
-	});
-	bluebird.all(savePs).then(()=>{
-		callback(null,pos);
-	});
+	return await yzGetPOByTid(codeData.tid);
 }
 
+router.post('/msgPush', (req,res) => {
+  
+	poPublishQueue.sendMsg(PO);
+  
+	res.status(200),send('success');
+  });
 
+router.get('/PO/byCode/:code',(req,res) =>{
+    var code = req.param.code;
 
-async function callYZ(api, params,callback) {
+	var pos = await yzGetPOByCode(code);
+    res.status(200).send(pos);
+});
 
-	require("./token").getToken(function(mytoken) {
+router.get('/PO/byTid/:tid',(req,res) =>{
+    var tid = req.param.tid;
 
-		var myClient = new YZClient(new Token(mytoken));
-
-		var promise = myClient.invoke(api, '3.0.0', 'GET', params, undefined);
-
-		promise.then(function(resp) {
-			//console.log('resp: ' + resp.body);
-			if(resp.statusCode == 200){
-				var body = JSON.parse(resp.body);
-
-				if(body.response){
-					callback(undefined,body.response);
-				}else if(body.error_response){
-					callback(body.error_response);
-				}else{
-					callback("call YZ failed, unrecognized response");
-				}
-			}else{
-				callback("call YZ failed, code:" + resp.statusCode + ", msg:" + resp.statusMessage);
-			}
-		}, function(err) {
-			console.log('err: ' + err);
-			callback(err)
-		}, function(prog) {
-			console.log('prog: ' + prog);
-			callback(prog);
-		});
-	});
-}
+	var pos = await yzGetPOByTid(tid);
+    res.status(200).send(pos);
+});
 
 // fetchByCode("/C=cn/ST=gd/O=zg/CN=androidtest","80392436389",function (fetchCmd){
 // 	console.log(data);
 // });
 
-exports.fetchByCode = fetchByCode;
-exports.getPOByCode = getPOByCode;
-exports.callYZ = callYZ;
-exports.getOrderByTid = getOrderByTid;
-exports.yzTradeDataToPO = yzTradeDataToPO;
-exports.fetchOrder = fetchOrder;
+
 exports.router = router;
+
