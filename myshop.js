@@ -47,26 +47,6 @@ function onFetch(msg){
     }
 }
 
-
-
-async function localGetPOBy(field,value){
-	var result = await database.select("select * from `PO` where `"+field+"`=?",[value]);
-	return result;
-}
-
-async function savePOs(pos){
-	return new Promise((resolve,reject) =>{
-		//got, save to database
-		var savePs = [];
-		pos.forEach((po)=>{
-			savePs.push(fetch.savePO(code,codeData.tid,po.productSN,po.productCount));
-		});
-		Promise.all(savePs).then(()=>{
-			resolve();
-		});
-	});
-}
-
 async function getPOBy(field,value){
 	var result = await localGetPOBy(field,value);
 	if(result.length == 0){

@@ -53,4 +53,20 @@ exports.getFetchedOrderByCode = async function (code) {
 	return fetchedOrders;
 }
 
+async function savePOs(pos){
+	return new Promise((resolve,reject) =>{
+		//got, save to database
+		var savePs = [];
+		pos.forEach((po)=>{
+			savePs.push(fetch.savePO(code,codeData.tid,po.productSN,po.productCount));
+		});
+		Promise.all(savePs).then(()=>{
+			resolve();
+		});
+	});
+}
+async function localGetPOBy(field,value){
+	var result = await database.select("select * from `PO` where `"+field+"`=?",[value]);
+	return result;
+}
 
