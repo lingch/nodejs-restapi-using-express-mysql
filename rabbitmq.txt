@@ -1,11 +1,16 @@
 #install erlang
+
+authinfo="--username=admin --password=admin"
+
+
 apt remove esl-erlang
 wget -c -O- http://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc | sudo apt-key add -
 echo "deb http://packages.erlang-solutions.com/ubuntu trusty contrib" | sudo tee -a /etc/apt/sources.list.d/erlang_solutions.list
 apt-get update
 apt-get install erlang
 
-
+deb https://packagecloud.io/rabbitmq/rabbitmq-server/ubuntu/ xenial main
+apt install rabbitmq-server
 
 rabbitmq-plugins enable rabbitmq_management
 
@@ -13,19 +18,21 @@ rabbitmqctl add_vhost myshop
 
 rabbitmqctl add_user  admin  admin
 rabbitmqctl set_user_tags admin administrator
-rabbitmqctl  set_permissions -p /myshop  admin '.*' '.*' '.*'
+rabbitmqctl  set_permissions -p myshop  admin '.*' '.*' '.*'
+rabbitmqctl  set_permissions admin '.*' '.*' '.*'
 
-rabbitmqadmin declare exchange name=sync type=fanout durable=true
-rabbitmqadmin declare exchange name=deploy type=fanout durable=true
+
+rabbitmqadmin declare exchange $authinfo --vhost=myshop name=sync type=fanout durable=true
+rabbitmqadmin declare exchange $authinfo --vhost=myshop name=deploy type=fanout durable=true
 
 
 
 #for myshop1
-rabbitmqadmin declare queue name=shop1.sync durable=true
-rabbitmqadmin declare queue name=shop1.deploy durable=true
+rabbitmqadmin declare queue $authinfo --vhost=myshop name=shop1.sync durable=true
+rabbitmqadmin declare queue $authinfo --vhost=myshop name=shop1.deploy durable=true
 
 #manual bind here
 
-#rabbitmqctl add_user  shop1  123456
+rabbitmqctl add_user  shop1  123456
 rabbitmqctl set_user_tags shop1 administrator
-rabbitmqctl  set_permissions -p /myshop  shop1 '.*' '.*' '.*'
+rabbitmqctl  set_permissions -p myshop  shop1 '.*' '.*' '.*'
