@@ -1,6 +1,6 @@
 var config = require('config');
 var https = require('https');
-
+var express = require('express');
 var database = require('./database');
 const router = express.Router();
 
@@ -46,16 +46,15 @@ async function refreshToken() {
 						body += data;
 					})
 					.on('end', () => {
-						console.log("end");
 						var resultObject = JSON.parse(body);
 						saveToken(resultObject.access_token);
+						resolve();
 					});
 			} else {
-				throw new Error("not 200");
+				reject("not 200");
 			}
 		}).on("error", (err) => {
-			console.log("Error: " + err.message);
-			throw new Error(err);
+			reject(err);
 		});
 		req.write(postData);
 		req.end();
@@ -63,9 +62,9 @@ async function refreshToken() {
 }
 
 
-
+//curl -X GET http://127.0.0.1:18081/token/refresh
 router.get('/refresh', function(req, res) {
-	refreshToken(function() {
+	refreshToken().then(()=> {
 	  res.status(200).send({
 		"status": "ok"
 	  });
