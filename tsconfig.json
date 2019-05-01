@@ -1,0 +1,15 @@
+{
+    // 编译器的配置
+    "compilerOptions": {
+        // 指定生成哪个模块系统代码
+        "module": "commonjs",
+        // 目标代码类型
+        "target": "es6",
+        // 用于debug
+        "sourceMap": true,
+        // 开发的时候要使用 es6 的语法
+        "lib": [
+            "es6"
+        ]
+    }
+}
