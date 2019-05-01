@@ -1,10 +1,11 @@
 {
   "queueHost": "www.mywxstore.cn",
+  "qSender": "androidtest",
   "database": {
-    "host": "gateway", //mysql database host name
-    "user": "myshop", //mysql database user name
-    "password": "123456", //mysql database password
-    "database": "myshop" //mysql database name
+    "host": "gateway", 
+    "user": "myshop",
+    "password": "123456",
+    "database": "myshop" 
   },
   "token": {
     "host": "open.youzan.com",

@@ -74,16 +74,16 @@ router.get('/PO/byTid/:tid',(req,res) =>{
 });
 
 
-router.post('/events/scanner',(req,res)=>{
+router.post('/events/scanner/:code',(req,res)=>{
     try{
       var client = req.headers['x-clientdn'];
-      var code = req.params[''];
+      var code = req.params['code'];
   
       //TODO:check the code type to see if we can process it
 
-      var pos = await getPOBy("code",code);
+      var PO = await getPOBy("code",code);
     
-      fetch.fetchByCode(pos,client,code);
+      fetch.fetchByCode(PO,client,code);
       res.status(200).send();
     }catch(Error){
       res.status(501).send();

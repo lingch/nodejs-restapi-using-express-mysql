@@ -43,67 +43,64 @@ class Publisher {
     }
 }
 
-class FetchPublisher extends Publisher{
-
-    async init(){
-        await super.init('sync');
-    }
-
-    async publish(msg) {
-        msg.headers.object = 'Fetch';
-        await super.publish(msg);
-    }
-}
-
 class POPublisher extends Publisher{
 
     async init(){
-        await super.init('sync');
+        await super.init('sync.PO');
     }
 
     async publish(msg) {
-        msg.headers.object = 'PO';
         await super.publish(msg);
     }
 }
 
-class FetchListener{
-    async init(qName){
-        this.ex = ex;
+class FetchPublisher extends Publisher{
+
+    async init(){
+        this.sender = require('config').get('qSender');
+        await super.init('sync.fetch');
+    }
+
+    async publish(msg) {
+        msg.headers.sender = this.sender;
+        await super.publish(msg);
+    }
+}
+
+
+
+
+class Listener{
+    async init(myName,qName,callback){
         [this.conn, this.channel] = await connectToQueue();
 
-        this.channel.consume(qName,(msg)=>{
-            if(msg.headers.sender != qName){
+        this.channel.consume(myName+'.'+qName,callback);
+    }
+}
+
+class POListener extends Listener{
+    async init(){
+        this.sender = require('config').get('qSender');
+        await super.init(this.sender,'sync.PO',(msg)=>{
+            database.savePO(msg);
+        });
+    }
+}
+class FetchListener extends Listener{
+    async init(){
+        this.sender = require('config').get('qSender');
+
+        await super.init(this.sender,'sync.fetch',(msg)=>{
+            if(msg.headers.sender != this.sender){
                 database.saveFetch(msg);
             }
         });
     }
 }
 
-class Listener{
-    async init(qName,callback){
-        [this.conn, this.channel] = await connectToQueue();
 
-        this.channel.consume(myname+'.'+qName,callback);
-    }
-}
-
-class POListener extends Listener{
-    async init(){
-        await super.init('sync',(msg)=>{
-
-        })
-    }
-}
-
-class FetchListener extends Listener{
-    async init(){
-        await super.init('fetch',(msg)=>{
-            
-        })
-    }
-}
-
-
-exports.FetchPublisher = FetchPublisher;
+exports.POPublisher = POPublisher;
 exports.POListener = POListener;
+exports.FetchPublisher = FetchPublisher;
+exports.FetchListener = FetchListener;
+

@@ -23,21 +23,6 @@ async function findProductChannel(rackSN,productSN){
 	return result[0].Channel;
 }
 
-async function saveFetchedOrder(code,tid,rackSN,order){
-	var now = moment().format('YYYY-MM-DD HH:mm:ss');
-
-	var rackID = await this.getRackIDfromRackSN(rackSN);
-
-	await database.update(
-		"insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
-		values (?,?,?,?,?,?)",
-		[code,tid,order.productSN,order.productCount,rackID,now]);
-
-	await database.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
-			[order.productCount,rackID]);
-}
-
-
 
 function buildCmdItem(sn,channel,count){
 	var item = {};
@@ -57,14 +42,14 @@ async function fetchOrder(code,tid,rackSN, unfetchedOrder){
 	return item;
 }
 
-async function fetchByCode(pos,rackSN,code) {
-	params = {};
-	params['code'] = code;
+async function fetchByCode(PO,rackSN,code) {
+
+	//TODO: only tid is not going to be working
 	
 	var dbResult = await getFetchedOrderByCode(code)
 
 	var unfetchedOrders = 
-		calUnfetchedRecords(pos,dbResult);
+		calUnfetchedRecords(PO,dbResult);
 	
 	fetchCmd = {
 		"code": code,
@@ -87,12 +72,18 @@ async function fetchByCode(pos,rackSN,code) {
 	}
 }
 
-async function saveFetchedOrders(rackSN,code,tid,orders){
-	orders.forEach(
-		(order)=>{
-			saveFetchedOrder(code,tid,rackSN,order)
-		}
-	);
+async function saveFetchItem(code,tid,fetchitem){
+	var now = moment().format('YYYY-MM-DD HH:mm:ss');
+
+	var rackID = await this.getRackIDfromRackSN(rackSN);
+
+	await database.update(
+		"insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
+		values (?,?,?,?,?,?)",
+		[code,tid,order.productSN,order.productCount,rackID,now]);
+
+	await database.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
+			[order.productCount,rackID]);
 }
 
 
