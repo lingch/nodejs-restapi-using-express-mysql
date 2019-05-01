@@ -1,19 +1,19 @@
-const express = require('express')
-const router = express.Router()
+const express = require('express');
+var token = require("./token");
+const router = express.Router();
 
 var YZClient = require('yz-open-sdk-nodejs');
-var Token = require('./node_modules/yz-open-sdk-nodejs/Token');
+var YZToken = require('./node_modules/yz-open-sdk-nodejs/Token');
 
 var FanoutQueue = require('./mq').FanOutQueue;
 
-var poPublishQueue = await new FanoutQueue('mywxstore.cn','amq.fanout',true);
+// var poPublishQueue = await new FanoutQueue('mywxstore.cn','amq.fanout',true);
 
 async function yzInvoke(api, params) {
+	var mytoken = await token.getToken(); 
 
 	return new Promise((resolve,reject) =>{
-		var token = await require("./token").getToken(); 
-
-		var myClient = new YZClient(new Token(mytoken));
+		var myClient = new YZClient(new YZToken(mytoken));
 	
 		var promise = myClient.invoke(api, '3.0.0', 'GET', params, undefined);
 	
@@ -71,25 +71,34 @@ async function yzGetPOByCode(code){
 	return await yzGetPOByTid(codeData.tid);
 }
 
-router.post('/msgPush', (req,res) => {
+router.post('/yzPush', (req,res) => {
+	console.log(req.body);
+
+	//var msg = JSON.parse(req.body);
+	require('fs').writeFile("d:\\j.txt",JSON.stringify(req.body),(err)=>{
+		console.log(err);
+	});
   
-	poPublishQueue.sendMsg(PO);
-  
-	res.status(200),send('success');
+	//poPublishQueue.sendMsg(PO);
+
+	res.status(200),send('111');
   });
 
 router.get('/PO/byCode/:code',(req,res) =>{
     var code = req.param.code;
 
-	var pos = await yzGetPOByCode(code);
-    res.status(200).send(pos);
+	yzGetPOByCode(code).then((pos)=>{
+		res.status(200).send(pos);
+	});
+    
 });
 
 router.get('/PO/byTid/:tid',(req,res) =>{
     var tid = req.param.tid;
 
-	var pos = await yzGetPOByTid(tid);
-    res.status(200).send(pos);
+	yzGetPOByTid(tid).then((pos)=>{
+		res.status(200).send(pos);
+	});
 });
 
 // fetchByCode("/C=cn/ST=gd/O=zg/CN=androidtest","80392436389",function (fetchCmd){

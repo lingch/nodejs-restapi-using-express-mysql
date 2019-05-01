@@ -19,10 +19,10 @@ async function callUpstream(){
     });
 }
 
-var poQ = new MQ.RecvQueue();
-poQ.init('amq.fanout','',onPO);
-var fetchQ = new MQ.RecvQueue();
-fetchQ.init('amq.fanout','',onFetch);
+// var poQ = new MQ.POListener();
+// poQ.init('amq.fanout','',onPO);
+// var fetchQ = new MQ.FetchedListener();
+// fetchQ.init('amq.fanout','',onFetch);
 
 function onPO(msg){
     var PO = { "items" : [] };
