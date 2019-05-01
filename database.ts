@@ -41,7 +41,7 @@ export async function savePOItem(code, tid, item: POItem, now) {
 		values(?,?,?,?,?)", [code, tid, item.productSN, item.productCount, now]);
 }
 
-async function savePO(po: PO) {
+export async function savePO(po: PO) {
     return new Promise((resolve, reject) => {
         var now = moment().format('YYYY-MM-DD HH:mm:ss');
 
@@ -67,16 +67,20 @@ async function savePO(po: PO) {
     });
 }
 ////////////////////////////////////////////
-async function saveFetchItem(code, tid, fetchitem) {
+export async function saveFetchedItem(code, tid, fetchitem) {
     await this.update(
         "insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
 		values (?,?,?,?,?,?)",
         [code, tid, fetchitem.productSN, fetchitem.productCount, fetchitem.rackID, fetchitem.fetchTime]);
+
+    await this.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
+        [fetchitem.productCount,fetchitem.rackID]);
 }
-async function saveFetch(fetchInfo) {
+
+export async function saveFetched(fetchInfo) {
     fetchInfo.forEach(
         (fetchItem) => {
-            saveFetchItem(fetchInfo.code, fetchInfo.tid, fetchItem)
+            saveFetchedItem(fetchInfo.code, fetchInfo.tid, fetchItem)
         }
     );
 }
@@ -118,5 +122,15 @@ export class PO {
     code: string;
     tid: string;
     items: POItem[];
+}
+
+export class RackInstance{
+    shop: string;
+    scanner: string;
+    indicator: string;
+    rack: string;
+    channel: string;
+    productSN: string;
+    productCount: number;
 }
 

@@ -1,5 +1,7 @@
 {
+  "shopName": "shop1",
   "queueHost": "www.mywxstore.cn",
+  "cmdQueueHost": "www.mywxstore.cn",
   "qSender": "androidtest",
   "database": {
     "host": "gateway", 
@@ -12,9 +14,9 @@
     "port": 443,
     "path": "/oauth/token",
     "queryParam": {
-      "client_id": "a1a479f0eec8fc0928",
-      "client_secret": "7b517a3013215014d4a16799a96801c5",
-      "kdt_id": "42857408"
+      "client_id": "d2d086b8f06dd84787",
+      "client_secret": "86721868a79b8d4e9e56f94ba8616406",
+      "kdt_id": "42943110"
     }
   }
 }

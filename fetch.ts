@@ -1,6 +1,13 @@
 import moment = require('moment');
-
+import config = require('config');
 import database = require('./database');
+import MQ = require( './mq');
+
+var cmdPublisher = new MQ.CmdPublisher();
+cmdPublisher.init(config.get('cmdQueueHost'));
+
+var fetchedListener = new MQ.FetchedListener();
+fetchedListener.init(config.get('cmdQueueHost'),config.get('shopName'));
 
 async function getRackIDfromRackSN(rackSN){
     var rackResult: any;
@@ -13,37 +20,41 @@ async function getRackIDfromRackSN(rackSN){
 	return rackResult[0].ID;
 }
 
-async function findProductChannel(rackSN,productSN){
+async function findProductRack(shopName,productSN){
     var result : any;
-	result = await database.select("select * from `RackInstance` where `SN`=? and `ProductSN`=? and `ProductCount`>0",[rackSN,productSN]);
+	result = await database.select("select * from Shop sh left JOIN RackInstance r on r.ShopID=sh.ID \
+    where sh.`Name` = '?' and ProductSN = '?' and ProductCount > 0",[shopName,productSN]);
 
 	if(result.length ==0){
-		throw new Error("channel not found, rackSN:" + rackSN + ", productSN:" + productSN);
-	}
+		throw new Error("cannot find product rack, shop:" + shopName + ", productSN:" + productSN);
+    }
+
+    var racks = [];
+    for(var i=0;i<result.length;++i){
+        var rack = new database.RackInstance();
+        rack.shop = shopName;
+        rack.rack = result[i].SN;
+        rack.channel = result[i].Channel;
+        rack.scanner = result[i].scanner;
+        rack.indicator = result[i].indicator;
+        rack.productSN = result[i].ProductSN;
+        rack.productCount = result[i].productCount;
+        racks.push(rack);
+    }
 	
-	return result[0].Channel;
-}
-
-
-function buildCmdItem(sn,channel,count){
-	var item = {};
-	item.sn = sn;
-	item.channel = channel;
-	item.count = count;
-
-	return item
+	return racks;
 }
 
 async function fetchItem(code,tid,rackSN, unfetchedItem: database.POItem){
-	var channel = await findProductChannel(rackSN,unfetchedItem.productSN);
-	var item = buildCmdItem(unfetchedItem.productSN,
-			channel,
-			unfetchedItem.productCount);
-	await saveFetchedOrder(code,tid,rackSN,unfetchedItem);
-	return item;
+    var shopName = config.get('shopName');
+
+    var racks = await findProductRack(shopName,unfetchedItem.productSN);
+    for(var i=0; i< racks.length; ++i){
+        cmdPublisher.publish(racks[i]);
+    }
 }
 
-async function fetchPO(rackSN,code) {
+export async function fetchPO(rackSN,code) {
 
 	//TODO: only tid is not going to be working
     var po = await database.getPOBy("code",code);
@@ -53,30 +64,11 @@ async function fetchPO(rackSN,code) {
 	var unfetched = 
 		calcUnfetchedItems(po,fetched);
 	
-	var fetchCmd = {
-		"code": code,
-		"items": []
-	}
-
 	for(var i=0;i<unfetched.items.length;++i){
-        if(unfetched.items[i].productCount > 0)
-		fetchItem(po.code, po.tid, rackSN,unfetched.items[i]);
+        if(unfetched.items[i].productCount > 0){
+            fetchItem(po.code, po.tid, rackSN,unfetched.items[i]);
+        }
     }
-
-}
-
-async function saveFetchItem(code,tid,fetchitem){
-	var now = moment().format('YYYY-MM-DD HH:mm:ss');
-
-	var rackID = await this.getRackIDfromRackSN(rackSN);
-
-	await database.update(
-		"insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
-		values (?,?,?,?,?,?)",
-		[code,tid,order.productSN,order.productCount,rackID,now]);
-
-	await database.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
-			[order.productCount,rackID]);
 }
 
 
@@ -95,14 +87,4 @@ function calcUnfetchedItems(po: database.PO,fetched: database.PO): database.PO{
 	}
 	return po;
 }
-
-
-exports.getFetchedOrderByTid = getFetchedOrderByTid;
-exports.getFetchedOrderByCode = getFetchedOrderByCode;
-exports.findProductChannel = findProductChannel;
-exports.saveFetchedOrder = saveFetchedOrder;
-exports.saveFetchedOrders = saveFetchedOrders;
-exports.getPOByCode = getPOByCode;
-exports.savePO = savePO;
-exports.getRackIDfromRackSN = getRackIDfromRackSN;
 
