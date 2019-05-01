@@ -48,13 +48,17 @@ function onFetch(msg){
 }
 
 async function getPOBy(field,value){
-	var result = await localGetPOBy(field,value);
-	if(result.length == 0){
+	var po = await database.getPOBy(field,value);
+	if(po == null){
         //not found in db, call upstream
-        var po = await callUpstream();
-        savePOs(po);
-        return po;
+        po = await callUpstream();
+        if(po ==null){
+            throw new Error("unable to get order info");
+        }
+        await savePO(po);
     }
+
+    return po;
 }
 
 router.get('/PO/byCode/:code',(req,res) =>{
@@ -81,9 +85,7 @@ router.post('/events/scanner/:code',(req,res)=>{
   
       //TODO:check the code type to see if we can process it
 
-      var PO = await getPOBy("code",code);
-    
-      fetch.fetchByCode(PO,client,code);
+      fetch.fetchPO(client,code);
       res.status(200).send();
     }catch(Error){
       res.status(501).send();
