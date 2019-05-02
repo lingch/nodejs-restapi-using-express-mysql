@@ -4,7 +4,7 @@ import database = require('./database');
 
 
 var host = config.get('queueHost');
-var myname = config.get('shopname');
+var myname = config.get('shopName');
 
 async function connectToQSvr(host: string) {
     return new Promise((resolve, reject) => {
@@ -71,7 +71,7 @@ export class CmdPublisher extends Publisher{
 }
 
 
-class Listener{
+export class Listener{
 
     conn;
     channel;
@@ -110,5 +110,4 @@ export class FetchedListener extends Listener{
         });
     }
 }
-
 

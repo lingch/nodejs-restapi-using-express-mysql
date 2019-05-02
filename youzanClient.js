@@ -1,6 +1,7 @@
 const express = require('express');
-var token = require("./token");
 const router = express.Router();
+
+var token = require("./token");
 
 var YZClient = require('yz-open-sdk-nodejs');
 var YZToken = require('./node_modules/yz-open-sdk-nodejs/Token');

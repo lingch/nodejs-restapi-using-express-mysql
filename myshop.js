@@ -76,21 +76,6 @@ router.get('/PO/byTid/:tid',(req,res) =>{
         res.status(200).send(po);
     });
 });
-
-
-router.post('/events/scanner/:code',(req,res)=>{
-    try{
-      var client = req.headers['x-clientdn'];
-      var code = req.params['code'];
-  
-      //TODO:check the code type to see if we can process it
-
-      fetch.fetchPO(client,code);
-      res.status(200).send();
-    }catch(Error){
-      res.status(501).send();
-    }
-  });
   
   exports.router = router;
 
