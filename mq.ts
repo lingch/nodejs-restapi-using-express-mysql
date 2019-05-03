@@ -6,7 +6,7 @@ import database = require('./database');
 var host = config.get('queueHost');
 var myname = config.get('shopName');
 
-async function connectToQSvr(host: string) {
+export async function connectToQSvr(host: string) {
     return new Promise((resolve, reject) => {
         amqp.connect("amqp://" + host + "/myshop", function (err, conn) {
             if (err) {
@@ -24,7 +24,7 @@ async function connectToQSvr(host: string) {
     });
 }
 
-class Publisher {
+export class Publisher {
 
     ex:string;
     conn;
@@ -64,11 +64,6 @@ export class FetchedPublisher extends Publisher{
     }
 }
 
-export class CmdPublisher extends Publisher{
-    async init(host){
-        await super.init(host,'sync.cmd');
-    }
-}
 
 
 export class Listener{
@@ -89,25 +84,6 @@ export class Listener{
     }
 }
 
-export class POListener extends Listener{
-    async init(host, myName){
-        var qSender = config.get('qSender');
-        await super.init(host,qSender,'sync.PO',(msg)=>{
-            database.savePO(msg);
-        });
-    }
-}
 
 
-export class FetchedListener extends Listener{
-    async init(host, myName){
-        var qSender = config.get('qSender');
-
-        await super.init(host,qSender,'sync.fetched',(msg)=>{
-            if(msg.headers.sender != this.myName){
-                database.saveFetchedItem(msg.headers.code,msg.headers.tid,msg);
-            }
-        });
-    }
-}
 

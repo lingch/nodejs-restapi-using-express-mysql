@@ -1,0 +1,23 @@
+{
+    "name": "rackControl1",
+    "cmd": {
+        "host": "www.mywxstore.cn",
+        "qName": "cmd"
+    },
+    "set": [
+        {
+            "scanner": 11,
+            "indR": 1,
+            "indG": 2,
+            "indY": 3,
+            "lock": 4
+        },
+        {
+            "scanner": 11,
+            "indR": 1,
+            "indG": 2,
+            "indY": 3,
+            "lock": 4
+        }
+    ]
+}

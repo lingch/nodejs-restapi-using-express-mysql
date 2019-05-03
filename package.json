@@ -13,11 +13,13 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@types/node": "^11.13.8",
     "amqplib": "^0.5.3",
     "bluebird": "^3.5.4",
     "body-parser": "^1.16.1",
     "config": "^3.1.0",
     "express": "^4.14.1",
+    "fs": "0.0.1-security",
     "http": "0.0.0",
     "moment": "^2.24.0",
     "mysql": "^2.13.0",

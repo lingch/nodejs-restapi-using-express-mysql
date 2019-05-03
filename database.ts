@@ -67,22 +67,18 @@ export async function savePO(po: PO) {
     });
 }
 ////////////////////////////////////////////
-export async function saveFetchedItem(code, tid, fetchitem) {
+export async function saveFetchedItem(code, tid, fetcheditem: FetchedItem, decreaseStock: boolean) {
+    var now = moment().format('YYYY-MM-DD HH:mm:ss');
+
     await this.update(
         "insert into `FetchRecord` (`code`,`tid`,`productSN`,`productCount`,`rackID`,`fetchTime`) \
 		values (?,?,?,?,?,?)",
-        [code, tid, fetchitem.productSN, fetchitem.productCount, fetchitem.rackID, fetchitem.fetchTime]);
+        [code, tid, fetcheditem.product.productSN, fetcheditem.product.productCount, fetcheditem.rack, now]);
 
-    await this.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
-        [fetchitem.productCount,fetchitem.rackID]);
-}
-
-export async function saveFetched(fetchInfo) {
-    fetchInfo.forEach(
-        (fetchItem) => {
-            saveFetchedItem(fetchInfo.code, fetchInfo.tid, fetchItem)
+        if(decreaseStock){
+            await this.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
+            [fetcheditem.product.productCount,fetcheditem.rack]);
         }
-    );
 }
 
 /////////////////////////////////////////////
@@ -102,11 +98,11 @@ export async function localGetPOBy(table:string, field: string, value) {
 }
 
 export async function getFetchedBy(field: string, value) {
-    return localGetPOBy('fetched',field,value);
+    return await localGetPOBy('fetched',field,value);
 }
 
 export async function getPOBy(field: string, value) {
-    return localGetPOBy('PO',field,value);
+    return await localGetPOBy('PO',field,value);
 }
 
 export class POItem {
@@ -124,11 +120,20 @@ export class PO {
     items: POItem[];
 }
 
+export class FetchedItem{
+    product: POItem;
+    rack: string;
+
+    constructor(rack,product: POItem){
+        this.rack = rack;
+        this.product = product;
+    }
+}
+
 export class RackInstance{
     shop: string;
-    scanner: string;
-    indicator: string;
     rack: string;
+    set: number;
     channel: string;
     productSN: string;
     productCount: number;
