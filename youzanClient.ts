@@ -1,4 +1,4 @@
-const express = require('express');
+import express = require('express');
 const router = express.Router();
 
 var token = require("./token");
@@ -44,16 +44,16 @@ async function yzInvoke(api, params) {
 }
 
 async function yzGetPOByTid(tid) {
-	params = {};
+	var params = {};
 	params['tid'] = tid;
-	var tidData = await yzInvoke('youzan.trade.get',params);
-	var pos = yzTradeDataToPO(code,tidData.trade);
+	var tidData: any = await yzInvoke('youzan.trade.get',params);
+	var pos = yzTradeDataToPO(null,(tidData as any).trade);
 	return pos;
 }
 
 function yzTradeDataToPO(code,trade){
 	var pos=[];
-	for(i=0;i<trade.orders.length;++i){
+	for(var i=0;i<trade.orders.length;++i){
 		var po = {"code": code,
 			"tid": trade.tid,
 			"productSN":trade.orders[i].outer_item_id,
@@ -66,10 +66,11 @@ function yzTradeDataToPO(code,trade){
 }
 
 async function yzGetPOByCode(code){
+	var params = {};
+	params['code'] = code;
+	var codeData: any = await yzInvoke('youzan.trade.selffetchcode.get', params);
 
-	var codeData = await yzInvoke('youzan.trade.selffetchcode.get', params);
-
-	return await yzGetPOByTid(codeData.tid);
+	return await yzGetPOByTid(codeData.trade.tid);
 }
 
 router.post('/yzPush', (req,res) => {
@@ -82,7 +83,7 @@ router.post('/yzPush', (req,res) => {
   
 	//poPublishQueue.sendMsg(PO);
 
-	res.status(200),send('111');
+	res.status(200).send('111');
   });
 
 router.get('/PO/byCode/:code',(req,res) =>{

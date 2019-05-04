@@ -1,7 +1,52 @@
+var os = require('os');
+if (os.platform() == 'win32') {  
+    if (os.arch() == 'ia32') {
+        var chilkat = require('@chilkat/ck-node11-win-ia32');
+    } else {
+        var chilkat = require('@chilkat/ck-node11-win64'); 
+    }
+} else if (os.platform() == 'linux') {
+    if (os.arch() == 'arm') {
+        var chilkat = require('@chilkat/ck-node11-arm');
+    } else if (os.arch() == 'x86') {
+        var chilkat = require('@chilkat/ck-node11-linux32');
+    } else {
+        var chilkat = require('@chilkat/ck-node11-linux64');
+    }
+} else if (os.platform() == 'darwin') {
+    var chilkat = require('@chilkat/ck-node11-macosx');
+}
+
 import MQ = require('./MQ');
 import { Cmd } from './fetch';
 
-var gpio = require("pi-gpio");
+var rackConfig = require('./config/rackConfig.json');
+
+const pem = require("pem");
+const fs = require("fs");
+
+//var gpio = require("pi-gpio");
+
+var gpioStatus: Array<number> = [];
+for(var i=0;i<30;++i){
+    gpioStatus[i] = 0;
+}
+
+async function readCert(){
+    return new Promise((resolve,reject)=>{
+        const pfx = fs.readFileSync(__dirname + '/' + rackConfig.cert);
+        pem.readPkcs12(pfx, { p12Password: rackConfig.certPwd }, (err, cert) => {
+            console.log(cert);
+            if(err){
+                reject(err);
+            }else{
+                resolve(cert);
+            }
+        });
+    });
+}
+
+
 
 async function setGPIO(port: number, value: number) {
     return new Promise((resolve, reject) => {
@@ -47,13 +92,13 @@ class CmdListener extends MQ.Listener {
     }
 }
 
-var gpioStatus: Array<number> = [];
-for(var i=0;i<30;++i){
-    gpioStatus[i] = 0;
-}
 
-var rackConfig = require('./config/rackConfig.json');
-var cmdListener = new CmdListener();
-cmdListener.init(rackConfig.cmd.host, rackConfig.name);
+
+var cert = readCert().then((cert) => {
+    var rackConfig = require('./config/rackConfig.json');
+    var cmdListener = new CmdListener();
+    cmdListener.init(rackConfig.cmd.host, rackConfig.name);
+    
+});
 
 
