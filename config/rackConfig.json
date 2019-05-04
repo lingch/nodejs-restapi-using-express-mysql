@@ -1,5 +1,6 @@
 {
-    "name": "rackControl1",
+    "cert": "config/androidtest.pfx",
+    "certPwd": "123456",
     "cmd": {
         "host": "www.mywxstore.cn",
         "qName": "cmd"
