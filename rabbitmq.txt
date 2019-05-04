@@ -1,3 +1,15 @@
+
+
+#rack(raspberry pi zero)
+npm install typescript -g
+
+#in ~/.bashrc
+alias ll='ls -al'
+export $PATH=$PATH:/opt/nodejs/bin
+
+#in /etc/ssh/sshd_config
+PermitRootLogin yes
+
 #install erlang
 
 authinfo="--username=admin --password=admin"

@@ -1,6 +1,6 @@
 var os = require('os');
 
-import MQ = require('./MQ');
+import MQ = require('./mq');
 import { Cmd } from './fetch';
 
 if (os.platform() == 'linux') {

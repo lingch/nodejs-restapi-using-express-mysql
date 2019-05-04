@@ -75,40 +75,40 @@ export async function saveFetchedItem(code, tid, fetcheditem: FetchedItem, decre
 		values (?,?,?,?,?,?)",
         [code, tid, fetcheditem.product.productSN, fetcheditem.product.productCount, fetcheditem.rack, now]);
 
-        if(decreaseStock){
-            await this.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
-            [fetcheditem.product.productCount,fetcheditem.rack]);
-        }
+    if (decreaseStock) {
+        await this.update("update `RackInstance` set `productCount`=`productCount`-? where `ID`=?",
+            [fetcheditem.product.productCount, fetcheditem.rack]);
+    }
 }
 
 /////////////////////////////////////////////
-export async function localGetPOBy(table:string, field: string, value) {
-    var result = await this.select("select * from `"+table+"` where `" + field + "`=?", [value]);
+export async function localGetPOBy(table: string, field: string, value) {
+    var result = await this.select("select * from `" + table + "` where `" + field + "`=?", [value]);
     var po = new PO();
-    if(result.length ==0){
+    if (result.length == 0) {
         return null;
-    }else{
+    } else {
         po.code = result[0].code;
-        po.tid= result[0].tid;
-        for(var i=0;i<result.length;++i){
-            po.items.push(new POItem(result[i].productSN,result[i].productCount));
+        po.tid = result[0].tid;
+        for (var i = 0; i < result.length; ++i) {
+            po.items.push(new POItem(result[i].productSN, result[i].productCount));
         }
     }
     return po;
 }
 
 export async function getFetchedBy(field: string, value) {
-    return await localGetPOBy('fetched',field,value);
+    return await localGetPOBy('fetched', field, value);
 }
 
 export async function getPOBy(field: string, value) {
-    return await localGetPOBy('PO',field,value);
+    return await localGetPOBy('PO', field, value);
 }
 
 export class POItem {
     productSN: string;
     productCount: number;
-    constructor(productSN: string,productCount:number){
+    constructor(productSN: string, productCount: number) {
         this.productSN = productSN;
         this.productCount = productCount;
     }
@@ -120,17 +120,17 @@ export class PO {
     items: POItem[];
 }
 
-export class FetchedItem{
+export class FetchedItem {
     product: POItem;
     rack: string;
 
-    constructor(rack,product: POItem){
+    constructor(rack, product: POItem) {
         this.rack = rack;
         this.product = product;
     }
 }
 
-export class RackInstance{
+export class RackInstance {
     shop: string;
     rack: string;
     set: number;
