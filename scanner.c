@@ -146,6 +146,8 @@ int main(int argc, char* argv[])
     char *charBuff = calloc(KEYBUFF_SIZE,sizeof(char));
     char *pChar = charBuff;
 
+     char *cmdBuff = calloc(KEYBUFF_SIZE + 128,sizeof(char));
+
     initKeymap();
 
     char devPathBuff[256];
@@ -200,6 +202,8 @@ int main(int argc, char* argv[])
                                 *pChar = keymap[ev[i].code];
                             }
 
+                            sprintf(cmdBuff,"./scanner.sh %s %s",argv[1],pChar);
+                            system(cmdBuff);
                             //printf("\t[%c]|",*pChar);
                             pChar++;
                         }
